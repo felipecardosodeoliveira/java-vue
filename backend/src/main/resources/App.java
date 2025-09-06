@@ -46,7 +46,8 @@ public class App {
                     List<Product> products = productDAO.getAll();
 
                     String responseJson = gson.toJson(products);
-
+                    
+                    exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
                     exchange.getResponseHeaders().set("Content-Type", "application/json");
                     exchange.sendResponseHeaders(201, 0);
                     exchange.getResponseBody().write(responseJson.getBytes());
