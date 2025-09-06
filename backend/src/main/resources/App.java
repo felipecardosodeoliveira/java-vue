@@ -20,8 +20,19 @@ public class App {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         Gson gson = new Gson();
 
-        server.createContext("/products", exchange ->  {
-            if ("POST".equals(exchange.getRequestMethod())) {
+        server.createContext("/products", exchange -> {
+            String method = exchange.getRequestMethod();
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+
+            if ("OPTIONS".equals(method)) {
+                exchange.sendResponseHeaders(204, -1);
+                exchange.close();
+                return;
+            }
+
+            if ("POST".equals(method)) {
                 try (Connection conn = DB.getConnection()) {
                     ProductDAO productDAO = new ProductDAO(conn);
                     String body = new String(exchange.getRequestBody().readAllBytes());
@@ -29,28 +40,27 @@ public class App {
                     Product product = gson.fromJson(body, Product.class);
                     productDAO.save(product);
 
+                    byte[] response = gson.toJson(product).getBytes();
                     exchange.getResponseHeaders().set("Content-Type", "application/json");
-                    exchange.sendResponseHeaders(201, 0);
-                    exchange.getResponseBody().write(gson.toJson(product).getBytes());
-
+                    exchange.sendResponseHeaders(201, response.length);
+                    exchange.getResponseBody().write(response);
                 } catch (Exception e) {
                     exchange.sendResponseHeaders(500, 0);
                     exchange.getResponseBody().write("Error".getBytes());
                 } finally {
                     exchange.close();
                 }
-            }
-            if ("GET".equals(exchange.getRequestMethod())) {
-                try(Connection conn = DB.getConnection()) {
+            } else if ("GET".equals(method)) {
+                try (Connection conn = DB.getConnection()) {
                     ProductDAO productDAO = new ProductDAO(conn);
                     List<Product> products = productDAO.getAll();
 
                     String responseJson = gson.toJson(products);
-                    
-                    exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                    byte[] response = responseJson.getBytes();
+
                     exchange.getResponseHeaders().set("Content-Type", "application/json");
-                    exchange.sendResponseHeaders(201, 0);
-                    exchange.getResponseBody().write(responseJson.getBytes());
+                    exchange.sendResponseHeaders(200, response.length);
+                    exchange.getResponseBody().write(response);
 
                     System.out.println("Returned " + products.size() + " products");
                 } catch (Exception e) {
@@ -59,6 +69,9 @@ public class App {
                 } finally {
                     exchange.close();
                 }
+            } else {
+                exchange.sendResponseHeaders(405, 0); 
+                exchange.close();
             }
         });
 
@@ -66,6 +79,5 @@ public class App {
 
         System.out.println("Server started on port 8080");
         System.out.println("Press Ctrl+C to stop the server");
-
     }
 }
