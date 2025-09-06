@@ -14,6 +14,7 @@
 
 <style src="">
   nav {
+    border-bottom: 1px solid #ccc;
     display: flex;
     gap: 1rem;
     justify-content: flex-end;

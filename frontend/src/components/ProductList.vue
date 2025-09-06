@@ -9,8 +9,8 @@
             const response = await fetch("http://localhost:8080/products");
             productList.value = await response.json();
         } catch (error) {
+            productList.value = [];
             console.error("Error:", error);
-            productList.value = [{ error: "Failed to load products" }];
         }
     });
 </script>
@@ -35,6 +35,7 @@
 <style scoped>
     .card-list {
         display: flex;
+        flex-wrap: wrap;
         gap: 2rem;
     }
 </style>
